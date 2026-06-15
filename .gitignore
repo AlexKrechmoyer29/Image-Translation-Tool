@@ -1,0 +1,38 @@
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# VS Code
+.vscode/
+
+# Build outputs
+build/
+dist/
+*.spec
+
+# Logs
+*.log
+
+# Local test images
+document.jpg
+test.jpg
+test.png
+
+# OCR temp files
+temp.png
+temp.jpg
+
+# Paddle / ML caches
+.paddleocr/
+.paddlex/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
