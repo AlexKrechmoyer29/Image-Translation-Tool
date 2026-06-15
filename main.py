@@ -1,6 +1,7 @@
 import sys
 from PySide6.QtWidgets import QApplication
 from app.overlay import SnipOverlay
+from app.translate import initTranslationPkg, translateText
 
 # Entry point for application and start up PySide6 QApp
 app = QApplication(sys.argv)
@@ -9,12 +10,19 @@ app = QApplication(sys.argv)
 overlay = SnipOverlay()
 overlay.showFullScreen()
 
-sys.exit(app.exec())
+fromLang = "en"
+toLang = "es"
+# Begin event tracking
+try:
+    app.exec()
+    print("Done")
+finally:
+    # Call OCR and translation tools
+    print("TRYING")
+    print(initTranslationPkg(fromLang, toLang))
+    print("Translate")
+    translateText()
 
-# Receives screeshot region
+sys.exit()
 
-# Send image to OCR
 
-# Send image to translation
-
-# Open result window or print

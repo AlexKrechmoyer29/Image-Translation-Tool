@@ -1,8 +1,7 @@
-import os 
-import sys
+import os, sys
 from PySide6.QtCore import QRect, Qt, QTimer
 from PySide6.QtGui import QGuiApplication, QPainter, QPen, QColor
-from PySide6.QtWidgets import QWidget
+from PySide6.QtWidgets import QWidget, QApplication
 
 class SnipOverlay(QWidget):
     def __init__(self):
@@ -13,6 +12,7 @@ class SnipOverlay(QWidget):
         self.setMouseTracking(True)
         self.startPoint = None
         self.endPoint = None
+        self.save_path = None
 
     def mousePressEvent(self, event):
         self.startPoint = event.position()
@@ -30,7 +30,7 @@ class SnipOverlay(QWidget):
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.fillRect(self.rect(), QColor(0, 0, 0, 80))
-        
+
         if self.startPoint is None or self.endPoint is None:
             return
 
@@ -56,8 +56,8 @@ class SnipOverlay(QWidget):
 
         screen = QGuiApplication.primaryScreen()
         pixmap = screen.grabWindow(0, rectangle.x(), rectangle.y(), rectangle.width(), rectangle.height())
-        save_path = os.path.join("app/Temp/", "temp.png")
-        success = pixmap.save(save_path)
-        print(f"Saved successfully: {success} | Path: {save_path}")
-
-        sys.exit()
+        self.save_path = os.path.join("app\\Temp\\", "temp.png")
+        success = pixmap.save(self.save_path)
+        print(f"Saved successfully: {success} | Path: {self.save_path}")
+        QApplication.quit()
+        
