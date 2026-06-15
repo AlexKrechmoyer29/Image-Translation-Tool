@@ -10,8 +10,8 @@ app = QApplication(sys.argv)
 overlay = SnipOverlay()
 overlay.showFullScreen()
 
-fromLang = "en"
-toLang = "es"
+fromLang = "de"
+toLang = "en"
 # Begin event tracking
 try:
     app.exec()
@@ -24,5 +24,3 @@ finally:
     translateText()
 
 sys.exit()
-
-

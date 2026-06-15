@@ -3,6 +3,9 @@ import argostranslate.translate
 from paddleocr import PaddleOCR
 import os.path
 
+tempImg = ".\\app\\Temp\\temp.png"
+tempLog = ".\\app\\Temp\\temp_log.txt"
+
 def initTranslationPkg(fromLang, toLang):
     global origLang  
     origLang = fromLang
@@ -20,16 +23,16 @@ def initTranslationPkg(fromLang, toLang):
 
 def translateText():
     ocr = PaddleOCR(use_angle_cls=True, lang=origLang, use_gpu=False)
-    result = ocr.ocr(".\\app\\Temp\\temp.png", cls=True)
+    result = ocr.ocr(tempImg, cls=True)
 
-    if os.path.exists(".\\app\\Temp\\temp_log.txt"):
-        os.remove(".\\app\\Temp\\temp_log.txt")
-    else:
-        print("Entered else")
-        f = open(".\\app\\Temp\\temp_log.txt","x")
-        with open(".\\app\\Temp\\temp_log.txt", "a") as f:
-            for line in result[0]:
-                text = line[1][0]
-                translation = argostranslate.translate.translate(text, origLang, transLang)
-                f.write(translation + "\n")
-                print(translation)
+    if os.path.exists(tempLog):
+        os.remove(tempLog)
+    
+    text = ""
+    f = open(tempLog,"x")
+    with open(tempLog, "a") as f:
+        for line in result[0]:
+            text += line[1][0] + " "
+        translation = argostranslate.translate.translate(text, origLang, transLang)
+        f.write(translation + "\n")
+        print(translation)
