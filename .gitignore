@@ -17,7 +17,7 @@ dist/
 *.spec
 
 # Logs
-*.log
+temp_log.txt
 
 # Local test images
 document.jpg
