@@ -7,7 +7,7 @@ app = QApplication(sys.argv)
 
 # Create snipping overlay (transparent, top of screen order)
 overlay = SnipOverlay()
-overlay.show()
+overlay.showFullScreen()
 
 sys.exit(app.exec())
 

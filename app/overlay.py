@@ -1,7 +1,8 @@
-from PySide6.QtWidgets import QWidget
-from PySide6.QtCore import Qt
-from PySide6.QtCore import QRect
-from PySide6.QtGui import QPainter
+import os 
+import sys
+from PySide6.QtCore import QDir, QRect, Qt, QTimer
+from PySide6.QtGui import QGuiApplication, QPainter, QPixmap
+from PySide6.QtWidgets import QApplication, QWidget
 
 class SnipOverlay(QWidget):
     def __init__(self):
@@ -21,6 +22,8 @@ class SnipOverlay(QWidget):
     def mouseReleaseEvent(self, event):
         print(f"Starting point (X,Y): ({self.startPoint.x()}, {self.startPoint.y()})")
         print(f"Ending Point (X,Y): ({self.endPoint.x()}, {self.endPoint.y()})")
+        self.hide()
+        QTimer.singleShot(100, self.captureSelection)
 
     def paintEvent(self, event):
         if self.startPoint is None or self.endPoint is None:
@@ -34,3 +37,21 @@ class SnipOverlay(QWidget):
         ).normalized()
 
         painter.drawRect(rectangle)
+    
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Escape:
+            self.close()
+
+    def captureSelection(self):
+        rectangle = QRect(
+            self.startPoint.toPoint(),
+            self.endPoint.toPoint()
+        ).normalized()
+
+        screen = QGuiApplication.primaryScreen()
+        pixmap = screen.grabWindow(0, rectangle.x(), rectangle.y(), rectangle.width(), rectangle.height())
+        save_path = os.path.join("app/Temp/", "temp.png")
+        success = pixmap.save(save_path)
+        print(f"Saved successfully: {success} | Path: {save_path}")
+        
+        sys.exit()
