@@ -1,14 +1,16 @@
 import os 
 import sys
-from PySide6.QtCore import QDir, QRect, Qt, QTimer
-from PySide6.QtGui import QGuiApplication, QPainter, QPixmap
-from PySide6.QtWidgets import QApplication, QWidget
+from PySide6.QtCore import QRect, Qt, QTimer
+from PySide6.QtGui import QGuiApplication, QPainter, QPen, QColor
+from PySide6.QtWidgets import QWidget
 
 class SnipOverlay(QWidget):
     def __init__(self):
         super().__init__()
         
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
+        self.setAttribute(Qt.WA_TranslucentBackground)
+        self.setMouseTracking(True)
         self.startPoint = None
         self.endPoint = None
 
@@ -26,16 +28,20 @@ class SnipOverlay(QWidget):
         QTimer.singleShot(100, self.captureSelection)
 
     def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.fillRect(self.rect(), QColor(0, 0, 0, 80))
+        
         if self.startPoint is None or self.endPoint is None:
             return
-
-        painter = QPainter(self)
 
         rectangle = QRect(
             self.startPoint.toPoint(),
             self.endPoint.toPoint()
         ).normalized()
+        pen = QPen(QColor("cyan"))
+        pen.setWidth(8)
 
+        painter.setPen(pen)
         painter.drawRect(rectangle)
     
     def keyPressEvent(self, event):
@@ -53,5 +59,5 @@ class SnipOverlay(QWidget):
         save_path = os.path.join("app/Temp/", "temp.png")
         success = pixmap.save(save_path)
         print(f"Saved successfully: {success} | Path: {save_path}")
-        
+
         sys.exit()
