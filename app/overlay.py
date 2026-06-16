@@ -23,7 +23,7 @@ class SnipOverlay(QWidget):
     
     def mouseMoveEvent(self, event):
         self.endPoint = event.position()
-        self.update()
+        QTimer.singleShot(30, self.update)  
     
     def mouseReleaseEvent(self, event):
         print(f"Starting point (X,Y): ({self.startPoint.x()}, {self.startPoint.y()})")
