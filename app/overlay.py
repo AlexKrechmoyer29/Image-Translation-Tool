@@ -1,14 +1,18 @@
 import os, sys
-from PySide6.QtCore import QRect, Qt, QTimer
+from PySide6.QtCore import QRect, Qt, QTimer, Signal
 from PySide6.QtGui import QGuiApplication, QPainter, QPen, QColor
 from PySide6.QtWidgets import QWidget, QApplication
 
 class SnipOverlay(QWidget):
+
+    captureComplete = Signal()
+
     def __init__(self):
         super().__init__()
         
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
-        self.setAttribute(Qt.WA_TranslucentBackground)
+        self.setAttribute(Qt.WA_TranslucentBackground) 
+        self.setAttribute(Qt.WA_DeleteOnClose)
         self.setMouseTracking(True)
         self.startPoint = None
         self.endPoint = None
@@ -48,6 +52,10 @@ class SnipOverlay(QWidget):
         if event.key() == Qt.Key_Escape:
             self.close()
 
+    def closeEvent(self, event):
+        self.captureComplete.emit()
+        event.accept()
+
     def captureSelection(self):
         rectangle = QRect(
             self.startPoint.toPoint(),
@@ -59,5 +67,5 @@ class SnipOverlay(QWidget):
         self.save_path = os.path.join("app\\Temp\\", "temp.png")
         success = pixmap.save(self.save_path)
         print(f"Saved successfully: {success} | Path: {self.save_path}")
-        QApplication.quit()
+        self.close()
         

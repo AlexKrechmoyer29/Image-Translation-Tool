@@ -36,3 +36,5 @@ def translateText():
         translation = argostranslate.translate.translate(text, origLang, transLang)
         f.write(translation + "\n")
         print(translation)
+
+    return translation
