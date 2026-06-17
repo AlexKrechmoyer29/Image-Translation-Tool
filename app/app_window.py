@@ -9,15 +9,62 @@ from app.translate import initTranslationPkg, translateText
 
 class MainWindow(QMainWindow):
     LANG_CODES = {
+        "Albanian": "sq",
+        "Arabic": "ar",
+        "Azerbaijani": "az",
+        "Basque": "eu",
+        "Bengali": "bn",
+        "Bulgarian": "bg",
+        "Catalan": "ca",
+        "Chinese": "zh",
+        "Chinese Traditional": "zt",
+        "Czech": "cs",
+        "Danish": "da",
+        "Dutch": "nl",
         "English": "en",
-        "Spanish": "es",
+        "Esperanto": "eo",
+        "Estonian": "et",
+        "Finnish": "fi",
+        "French": "fr",
+        "Galician": "gl",
         "German": "de",
+        "Greek": "el",
+        "Hebrew": "he",
+        "Hindi": "hi",
+        "Hungarian": "hu",
+        "Indonesian": "id",
+        "Irish": "ga",
+        "Italian": "it",
+        "Japanese": "ja",
+        "Korean": "ko",
+        "Kyrgyz": "ky",
+        "Latvian": "lv",
+        "Lithuanian": "lt",
+        "Malay": "ms",
+        "Norwegian Bokmal": "nb",
+        "Persian": "fa",
+        "Polish": "pl",
+        "Portuguese": "pt",
+        "Portuguese Brazil": "pb",
+        "Romanian": "ro",
+        "Russian": "ru",
+        "Serbian": "sr",
+        "Slovak": "sk",
+        "Slovenian": "sl",
+        "Spanish": "es",
+        "Swedish": "sv",
+        "Tagalog": "tl",
+        "Thai": "th",
+        "Turkish": "tr",
+        "Ukrainian": "uk",
+        "Urdu": "ur",
+        "Vietnamese": "vi",
         } 
+    
     def __init__(self, parent=None):  
         super().__init__()
         
         # Top Bar
-
         topBar = QFrame()
         topLogo = QLabel("Logo")
         title = QLabel("Title")
@@ -26,16 +73,47 @@ class MainWindow(QMainWindow):
 
         # Language Settings
         self.menuLang = QLabel("Language")
+
+        languages = ["English", "Spanish", "German"]
+
         self.menuFromLang = QComboBox()
-        self.menuFromLang.addItems(["English", "Spanish", "German"])
         self.menuToLang = QComboBox()
-        self.menuToLang.addItems(["English", "Spanish", "German"])
 
-        def comboChange(index, menu):
-            print("Selected: ", menu.currentText())
+        self.menuFromLang.addItems(["Spanish", "German", "English"])
+        self.menuToLang.addItems(["English"])
 
-        self.menuFromLang.currentIndexChanged.connect(lambda index: comboChange(index, self.menuFromLang))
-        self.menuToLang.currentIndexChanged.connect(lambda index: comboChange(index, self.menuToLang))
+        def updateToLang(index):
+            selected = self.menuFromLang.currentText()
+
+            self.menuToLang.blockSignals(True)
+            self.menuToLang.clear()
+
+            if selected == "English":
+                self.menuToLang.addItems(["Spanish", "German", "English"])
+            else:
+                self.menuToLang.addItems(["English"])
+
+            self.menuToLang.blockSignals(False)
+
+
+        def updateFromLang(index):
+            selected = self.menuToLang.currentText()
+
+            self.menuFromLang.blockSignals(True)
+            self.menuFromLang.clear()
+
+            if selected == "English":
+                self.menuFromLang.addItems(["Spanish", "German", "English"])
+            else:
+                self.menuFromLang.addItems(["English"])
+
+            self.menuFromLang.blockSignals(False)
+
+
+        self.menuFromLang.currentIndexChanged.connect(updateToLang)
+        self.menuToLang.currentIndexChanged.connect(updateFromLang)
+
+        updateToLang(0)
 
         # AI Settings
 
