@@ -1,18 +1,66 @@
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QFrame, QLabel, QStackedWidget,
     QHBoxLayout, QVBoxLayout, QGridLayout, QSizePolicy, QPushButton,
-    QComboBox, QRadioButton, QButtonGroup, QGroupBox, QPlainTextEdit
+    QComboBox, QRadioButton, QButtonGroup, QGroupBox, QPlainTextEdit, QCheckBox
 )
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer, QSettings
 from app.overlay import SnipOverlay
-from app.translate import initTranslationPkg, translateText
+import app.translate
 
 class MainWindow(QMainWindow):
     LANG_CODES = {
+        "Albanian": "sq",
+        "Arabic": "ar",
+        "Azerbaijani": "az",
+        "Basque": "eu",
+        "Bengali": "bn",
+        "Bulgarian": "bg",
+        "Catalan": "ca",
+        "Chinese": "zh",
+        "Chinese Traditional": "zt",
+        "Czech": "cs",
+        "Danish": "da",
+        "Dutch": "nl",
         "English": "en",
-        "Spanish": "es",
+        "Esperanto": "eo",
+        "Estonian": "et",
+        "Finnish": "fi",
+        "French": "fr",
+        "Galician": "gl",
         "German": "de",
+        "Greek": "el",
+        "Hebrew": "he",
+        "Hindi": "hi",
+        "Hungarian": "hu",
+        "Indonesian": "id",
+        "Irish": "ga",
+        "Italian": "it",
+        "Japanese": "ja",
+        "Korean": "ko",
+        "Kyrgyz": "ky",
+        "Latvian": "lv",
+        "Lithuanian": "lt",
+        "Malay": "ms",
+        "Norwegian Bokmal": "nb",
+        "Persian": "fa",
+        "Polish": "pl",
+        "Portuguese": "pt",
+        "Portuguese Brazil": "pb",
+        "Romanian": "ro",
+        "Russian": "ru",
+        "Serbian": "sr",
+        "Slovak": "sk",
+        "Slovenian": "sl",
+        "Spanish": "es",
+        "Swedish": "sv",
+        "Tagalog": "tl",
+        "Thai": "th",
+        "Turkish": "tr",
+        "Ukrainian": "uk",
+        "Urdu": "ur",
+        "Vietnamese": "vi",
         } 
+    
     def __init__(self, parent=None):  
         super().__init__()
         
@@ -25,17 +73,49 @@ class MainWindow(QMainWindow):
         menuBar = QFrame()
 
         # Language Settings
+
         self.menuLang = QLabel("Language")
+
         self.menuFromLang = QComboBox()
-        self.menuFromLang.addItems(["English", "Spanish", "German"])
         self.menuToLang = QComboBox()
-        self.menuToLang.addItems(["English", "Spanish", "German"])
 
-        def comboChange(index, menu):
-            print("Selected: ", menu.currentText())
+        self.menuFromLang.addItems(["Spanish", "German", "English"])
+        self.menuToLang.addItems(["English"])
 
-        self.menuFromLang.currentIndexChanged.connect(lambda index: comboChange(index, self.menuFromLang))
-        self.menuToLang.currentIndexChanged.connect(lambda index: comboChange(index, self.menuToLang))
+        def updateToLang(index):
+            selected = self.menuFromLang.currentText()
+
+            self.menuToLang.blockSignals(True)
+            self.menuToLang.clear()
+
+            if selected == "English":
+                self.menuToLang.addItems(["Spanish", "German", "English"])
+            else:
+                self.menuToLang.addItems(["English"])
+
+            self.menuToLang.blockSignals(False)
+
+
+        def updateFromLang(index):
+            selected = self.menuToLang.currentText()
+
+            self.menuFromLang.blockSignals(True)
+            self.menuFromLang.clear()
+
+            if selected == "English":
+                self.menuFromLang.addItems(["Spanish", "German", "English"])
+            else:
+                self.menuFromLang.addItems(["English"])
+
+            self.menuFromLang.blockSignals(False)
+
+
+        self.menuFromLang.currentIndexChanged.connect(updateToLang)
+        self.menuToLang.currentIndexChanged.connect(updateFromLang)
+        self.menuFromLang.currentIndexChanged.connect(self.saveLanguageSettings)
+        self.menuToLang.currentIndexChanged.connect(self.saveLanguageSettings)
+
+        updateToLang(0)
 
         # AI Settings
 
@@ -48,6 +128,20 @@ class MainWindow(QMainWindow):
         group.addButton(menuAINo)
         menuAINo.setChecked(True)
         # readYesNo = group.checkedButton().text()
+
+        # Model Settings
+
+        self.preloadCheck = QCheckBox("Pre-load Models")
+        self.preloadCheck.setChecked(app.translate.preload_model)
+        self.unloadCheck = QCheckBox("Unload After Each Use")
+        self.unloadCheck.setChecked(app.translate.unload_after_use)
+
+        self.preloadCheck.stateChanged.connect(self.onPreloadChanged)
+        self.unloadCheck.stateChanged.connect(self.onUnloadChanged)
+        self.preloadCheck.stateChanged.connect(self.saveLanguageSettings)
+        self.unloadCheck.stateChanged.connect(self.saveLanguageSettings)
+
+        self.loadLanguageSettings()
 
         # Image Selection Button
 
@@ -85,7 +179,10 @@ class MainWindow(QMainWindow):
         menuBarLayout.addWidget(menuAIYes, 1, 1)
         menuBarLayout.addWidget(menuAINo, 1, 2)
 
-        menuBarLayout.addWidget(capImageButton, 2, 0, 1, 3)
+        menuBarLayout.addWidget(self.preloadCheck, 2, 0, 1, 2)
+        menuBarLayout.addWidget(self.unloadCheck, 2, 2)
+
+        menuBarLayout.addWidget(capImageButton, 3, 0, 1, 3)
 
         menuBar.setLayout(menuBarLayout)
         menuBar.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
@@ -99,6 +196,7 @@ class MainWindow(QMainWindow):
         outputBox.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
     
         # Central Layout
+
         centralLayout.addWidget(topBar)
         centralLayout.addWidget(menuBar)
         centralLayout.addWidget(outputBox, 1)
@@ -106,9 +204,54 @@ class MainWindow(QMainWindow):
         central_widget.setLayout(centralLayout)
         self.setCentralWidget(central_widget)
 
+        
+        # Model Preloading and Settings Functions
+
+        if app.translate.preload_model:
+            QTimer.singleShot(0, self.preloadAtStartup)
+
+    def loadLanguageSettings(self):
+        settings = QSettings("ITT", "ImageTranslationTool")
+        from_lang = settings.value("from_lang", "Spanish")
+        to_lang = settings.value("to_lang", "English")
+        import app.translate as t
+        t.preload_model = settings.value("preload", True, type=bool)
+        t.unload_after_use = settings.value("unload", False, type=bool)
+        self.preloadCheck.setChecked(t.preload_model)
+        self.unloadCheck.setChecked(t.unload_after_use)
+        # Restore from_lang first so updateToLang populates menuToLang,
+        # then restore from_lang so it sticks as the final selection.
+        from_idx = self.menuFromLang.findText(from_lang)
+        if from_idx >= 0:
+            self.menuFromLang.setCurrentIndex(from_idx)
+        to_idx = self.menuToLang.findText(to_lang)
+        if to_idx >= 0:
+            self.menuToLang.setCurrentIndex(to_idx)
+
+    def saveLanguageSettings(self):
+        settings = QSettings("ITT", "ImageTranslationTool")
+        settings.setValue("from_lang", self.menuFromLang.currentText())
+        settings.setValue("to_lang", self.menuToLang.currentText())
+        settings.setValue("preload", app.translate.preload_model)
+        settings.setValue("unload", app.translate.unload_after_use)
+        settings.sync()
+
+    def onPreloadChanged(self, state):
+        import app.translate as t
+        t.preload_model = bool(state)
+
+    def onUnloadChanged(self, state):
+        import app.translate as t
+        t.unload_after_use = bool(state)
+
+    def preloadAtStartup(self):
+        fromLang = self.LANG_CODES[self.menuFromLang.currentText()]
+        toLang = self.LANG_CODES[self.menuToLang.currentText()]
+        app.translate.preloadTranslationPkg(fromLang, toLang)
+
     def translateImage(self, fromLang, toLang):
-        initTranslationPkg(fromLang, toLang)
-        self.outputDisplay.setPlainText(translateText()) # Replace this with changing window output text box when implemented
+        app.translate.initTranslationPkg(fromLang, toLang)
+        self.outputDisplay.setPlainText(app.translate.translateText())
         self.show()
 
     def showOverlay(self):
