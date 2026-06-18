@@ -1,11 +1,57 @@
 from PySide6.QtWidgets import (
-    QMainWindow, QWidget, QFrame, QLabel, QStackedWidget,
-    QHBoxLayout, QVBoxLayout, QGridLayout, QSizePolicy, QPushButton,
+    QMainWindow, QWidget, QFrame, QLabel, QStackedWidget, QStyleFactory, 
+    QHBoxLayout, QVBoxLayout, QGridLayout, QSizePolicy, QPushButton, QApplication,
     QComboBox, QRadioButton, QButtonGroup, QGroupBox, QPlainTextEdit, QCheckBox
 )
+from PySide6.QtGui import QPalette, QColor
 from PySide6.QtCore import Qt, QTimer, QSettings
 from app.overlay import SnipOverlay
 import app.translate
+
+def apply_dark_fusion_style(app: QApplication) -> None:
+    app.setStyle(QStyleFactory.create("Fusion"))
+
+    # Font size 
+    default_font = QApplication.font()
+    default_font.setPointSize(default_font.pointSize() + 2)
+    app.setFont(default_font)
+
+    # Palette
+    dark_palette = QPalette()
+
+    ColorRole = QPalette.ColorRole
+    ColorGroup = QPalette.ColorGroup
+
+    dark_palette.setColor(ColorRole.Window, QColor(53, 53, 53))
+    dark_palette.setColor(ColorRole.WindowText, Qt.GlobalColor.white)
+    dark_palette.setColor(ColorGroup.Disabled, ColorRole.WindowText, QColor(127, 127, 127))
+
+    dark_palette.setColor(ColorRole.Base, QColor(42, 42, 42))
+    dark_palette.setColor(ColorRole.AlternateBase, QColor(66, 66, 66))
+
+    dark_palette.setColor(ColorRole.ToolTipBase, Qt.GlobalColor.white)
+    dark_palette.setColor(ColorRole.ToolTipText, Qt.GlobalColor.white)
+
+    dark_palette.setColor(ColorRole.Text, Qt.GlobalColor.white)
+    dark_palette.setColor(ColorGroup.Disabled, ColorRole.Text, QColor(127, 127, 127))
+
+    dark_palette.setColor(ColorRole.Dark, QColor(35, 35, 35))
+    dark_palette.setColor(ColorRole.Shadow, QColor(20, 20, 20))
+
+    dark_palette.setColor(ColorRole.Button, QColor(53, 53, 53))
+    dark_palette.setColor(ColorRole.ButtonText, Qt.GlobalColor.white)
+    dark_palette.setColor(ColorGroup.Disabled, ColorRole.ButtonText, QColor(127, 127, 127))
+
+    dark_palette.setColor(ColorRole.BrightText, Qt.GlobalColor.red)
+    dark_palette.setColor(ColorRole.Link, QColor(42, 130, 218))
+
+    dark_palette.setColor(ColorRole.Highlight, QColor(42, 130, 218))
+    dark_palette.setColor(ColorGroup.Disabled, ColorRole.Highlight, QColor(80, 80, 80))
+
+    dark_palette.setColor(ColorRole.HighlightedText, Qt.GlobalColor.white)
+    dark_palette.setColor(ColorGroup.Disabled, ColorRole.HighlightedText, QColor(127, 127, 127))
+
+    app.setPalette(dark_palette)
 
 class MainWindow(QMainWindow):
     LANG_CODES = {
