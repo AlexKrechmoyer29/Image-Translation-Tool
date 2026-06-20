@@ -125,7 +125,7 @@ class MainWindow(QMainWindow):
         self.menuFromLang = QComboBox()
         self.menuToLang = QComboBox()
 
-        self.menuFromLang.addItems(["Spanish", "German", "English"])
+        self.menuFromLang.addItems(list(self.LANG_CODES.keys()))
         self.menuToLang.addItems(["English"])
 
         def updateToLang(index):
@@ -135,7 +135,7 @@ class MainWindow(QMainWindow):
             self.menuToLang.clear()
 
             if selected == "English":
-                self.menuToLang.addItems(["Spanish", "German", "English"])
+                self.menuToLang.addItems(list(self.LANG_CODES.keys()))
             else:
                 self.menuToLang.addItems(["English"])
 
@@ -149,7 +149,7 @@ class MainWindow(QMainWindow):
             self.menuFromLang.clear()
 
             if selected == "English":
-                self.menuFromLang.addItems(["Spanish", "German", "English"])
+                self.menuFromLang.addItems(list(self.LANG_CODES.keys()))
             else:
                 self.menuFromLang.addItems(["English"])
 

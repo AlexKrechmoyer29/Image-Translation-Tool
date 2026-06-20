@@ -4,6 +4,31 @@ from paddleocr import PaddleOCR
 import os.path
 import gc
 
+# Map from translation language codes (ISO 639-1) to PaddleOCR lexicon codes.
+# Languages not listed here default to "latin" (most European / Latin-script langs).
+OCR_LANG_MAP = {
+    "en": "en",
+    "zh": "ch",                # Chinese simplified
+    "zt": "chinese_cht",        # Chinese traditional
+    "ja": "japan",
+    "ko": "korean",
+    "ar": "arabic",
+    "fa": "arabic",             # Persian uses Arabic script
+    "ur": "arabic",             # Urdu uses Arabic script
+    "hi": "devanagari",
+    "bn": "devanagari",         # Bengali
+    "ta": "ta",                 # Tamil
+    "te": "te",                 # Telugu
+    "ru": "cyrillic",
+    "uk": "cyrillic",
+    "bg": "cyrillic",           # Bulgarian
+    "sr": "cyrillic",           # Serbian
+    "ky": "cyrillic",           # Kyrgyz
+}
+
+def getOcrLang(transLangCode):
+    return OCR_LANG_MAP.get(transLangCode, "latin")
+
 tempImg = ".\\app\\Temp\\temp.png"
 tempLog = ".\\app\\Temp\\temp_log.txt"
 
@@ -45,7 +70,7 @@ def unloadTranslationPkg():
     gc.collect()
 
 def translateText():
-    ocr = PaddleOCR(use_angle_cls=True, lang=origLang, use_gpu=False)
+    ocr = PaddleOCR(use_angle_cls=True, lang=getOcrLang(origLang), use_gpu=False)
     result = ocr.ocr(tempImg, cls=True)
 
     if os.path.exists(tempLog):
@@ -56,6 +81,9 @@ def translateText():
     with open(tempLog, "a") as f:
         for line in result[0]:
             text += line[1][0] + " "
+        if origLang == "ar":
+            text = text[::-1]
+        print(text + "\n")
         translation = argostranslate.translate.translate(text, origLang, transLang)
         f.write(translation + "\n")
         print(translation)
