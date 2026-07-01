@@ -4,11 +4,43 @@ from PySide6.QtWidgets import (
     QComboBox, QRadioButton, QButtonGroup, QGroupBox, QPlainTextEdit, QCheckBox
 )
 from PySide6.QtGui import QPalette, QColor
-from PySide6.QtCore import Qt, QTimer, QSettings
+from PySide6.QtCore import Qt, QTimer, QSettings, QObject, Signal, QThread
 from app.overlay import SnipOverlay
-import app.translate
+import sys
 
-def apply_dark_fusion_style(app: QApplication) -> None:
+
+def _translate_module(preload_model=None, unload_after_use=None):
+    import importlib
+
+    module = importlib.import_module("app.translate")
+    if preload_model is not None:
+        module.preload_model = preload_model
+    if unload_after_use is not None:
+        module.unload_after_use = unload_after_use
+    return module
+
+
+class TranslationWarmupWorker(QObject):
+    finished = Signal()
+    failed = Signal(str)
+
+    def __init__(self, from_lang, to_lang, preload_model, unload_after_use):
+        super().__init__()
+        self.from_lang = from_lang
+        self.to_lang = to_lang
+        self.preload_model = preload_model
+        self.unload_after_use = unload_after_use
+
+    def run(self):
+        try:
+            translate = _translate_module(self.preload_model, self.unload_after_use)
+            translate.preloadTranslationPkg(self.from_lang, self.to_lang)
+        except Exception as exc:
+            self.failed.emit(str(exc))
+        else:
+            self.finished.emit()
+
+def apply_style(app: QApplication) -> None:
     app.setStyle(QStyleFactory.create("Fusion"))
 
     # Font size 
@@ -105,10 +137,12 @@ class MainWindow(QMainWindow):
         "Ukrainian": "uk",
         "Urdu": "ur",
         "Vietnamese": "vi",
-        } 
+    } 
     
     def __init__(self, parent=None):  
         super().__init__()
+        self._warmup_thread = None
+        self._warmup_worker = None
         
         # Top Bar
 
@@ -178,16 +212,14 @@ class MainWindow(QMainWindow):
         # Model Settings
 
         self.preloadCheck = QCheckBox("Pre-load Models")
-        self.preloadCheck.setChecked(app.translate.preload_model)
         self.unloadCheck = QCheckBox("Unload After Each Use")
-        self.unloadCheck.setChecked(app.translate.unload_after_use)
+
+        self.loadLanguageSettings()
 
         self.preloadCheck.stateChanged.connect(self.onPreloadChanged)
         self.unloadCheck.stateChanged.connect(self.onUnloadChanged)
         self.preloadCheck.stateChanged.connect(self.saveLanguageSettings)
         self.unloadCheck.stateChanged.connect(self.saveLanguageSettings)
-
-        self.loadLanguageSettings()
 
         # Image Selection Button
 
@@ -253,18 +285,15 @@ class MainWindow(QMainWindow):
         
         # Model Preloading and Settings Functions
 
-        if app.translate.preload_model:
+        if self.preloadCheck.isChecked():
             QTimer.singleShot(0, self.preloadAtStartup)
 
     def loadLanguageSettings(self):
         settings = QSettings("ITT", "ImageTranslationTool")
         from_lang = settings.value("from_lang", "Spanish")
         to_lang = settings.value("to_lang", "English")
-        import app.translate as t
-        t.preload_model = settings.value("preload", True, type=bool)
-        t.unload_after_use = settings.value("unload", False, type=bool)
-        self.preloadCheck.setChecked(t.preload_model)
-        self.unloadCheck.setChecked(t.unload_after_use)
+        self.preloadCheck.setChecked(settings.value("preload", True, type=bool))
+        self.unloadCheck.setChecked(settings.value("unload", False, type=bool))
         # Restore from_lang first so updateToLang populates menuToLang,
         # then restore from_lang so it sticks as the final selection.
         from_idx = self.menuFromLang.findText(from_lang)
@@ -278,26 +307,54 @@ class MainWindow(QMainWindow):
         settings = QSettings("ITT", "ImageTranslationTool")
         settings.setValue("from_lang", self.menuFromLang.currentText())
         settings.setValue("to_lang", self.menuToLang.currentText())
-        settings.setValue("preload", app.translate.preload_model)
-        settings.setValue("unload", app.translate.unload_after_use)
+        settings.setValue("preload", self.preloadCheck.isChecked())
+        settings.setValue("unload", self.unloadCheck.isChecked())
         settings.sync()
 
+    def _updateLoadedTranslateSettings(self):
+        module = sys.modules.get("app.translate")
+        if module is not None:
+            module.preload_model = self.preloadCheck.isChecked()
+            module.unload_after_use = self.unloadCheck.isChecked()
+
     def onPreloadChanged(self, state):
-        import app.translate as t
-        t.preload_model = bool(state)
+        self._updateLoadedTranslateSettings()
 
     def onUnloadChanged(self, state):
-        import app.translate as t
-        t.unload_after_use = bool(state)
+        self._updateLoadedTranslateSettings()
 
     def preloadAtStartup(self):
+        if self._warmup_thread is not None:
+            return
+
         fromLang = self.LANG_CODES[self.menuFromLang.currentText()]
         toLang = self.LANG_CODES[self.menuToLang.currentText()]
-        app.translate.preloadTranslationPkg(fromLang, toLang)
+        self._warmup_thread = QThread(self)
+        self._warmup_worker = TranslationWarmupWorker(
+            fromLang,
+            toLang,
+            self.preloadCheck.isChecked(),
+            self.unloadCheck.isChecked(),
+        )
+        self._warmup_worker.moveToThread(self._warmup_thread)
+        self._warmup_thread.started.connect(self._warmup_worker.run)
+        self._warmup_worker.finished.connect(self._warmup_thread.quit)
+        self._warmup_worker.failed.connect(self._warmup_thread.quit)
+        self._warmup_worker.finished.connect(self._warmup_worker.deleteLater)
+        self._warmup_worker.failed.connect(self._warmup_worker.deleteLater)
+        self._warmup_thread.finished.connect(self._warmup_thread.deleteLater)
+        self._warmup_thread.finished.connect(lambda: setattr(self, "_warmup_thread", None))
+        self._warmup_thread.finished.connect(lambda: setattr(self, "_warmup_worker", None))
+        self._warmup_worker.failed.connect(lambda message: print(f"Warmup failed: {message}"))
+        self._warmup_thread.start()
 
     def translateImage(self, fromLang, toLang):
-        app.translate.initTranslationPkg(fromLang, toLang)
-        self.outputDisplay.setPlainText(app.translate.translateText())
+        translate = _translate_module(
+            self.preloadCheck.isChecked(),
+            self.unloadCheck.isChecked(),
+        )
+        translate.initTranslationPkg(fromLang, toLang)
+        self.outputDisplay.setPlainText(translate.translateText())
         self.show()
 
     def showOverlay(self):
