@@ -162,6 +162,9 @@ class MainWindow(QMainWindow):
         self.menuFromLang.addItems(list(self.LANG_CODES.keys()))
         self.menuToLang.addItems(["English"])
 
+
+        # Handler for updating the "To" language options based on the selected "From" language, and vice versa.
+
         def updateToLang(index):
             selected = self.menuFromLang.currentText()
 
@@ -214,6 +217,10 @@ class MainWindow(QMainWindow):
         self.preloadCheck = QCheckBox("Pre-load Models")
         self.unloadCheck = QCheckBox("Unload After Each Use")
 
+        # Window Pinning
+        
+        self.pinCheck = QCheckBox("Pin Window")
+        self.pinCheck.toggled.connect(self.pinToggled)
         self.loadLanguageSettings()
 
         self.preloadCheck.stateChanged.connect(self.onPreloadChanged)
@@ -278,6 +285,7 @@ class MainWindow(QMainWindow):
         centralLayout.addWidget(topBar)
         centralLayout.addWidget(menuBar)
         centralLayout.addWidget(outputBox, 1)
+        centralLayout.addWidget(self.pinCheck, Qt.AlignRight)
 
         central_widget.setLayout(centralLayout)
         self.setCentralWidget(central_widget)
@@ -287,6 +295,13 @@ class MainWindow(QMainWindow):
 
         if self.preloadCheck.isChecked():
             QTimer.singleShot(0, self.preloadAtStartup)
+
+    # Handler for window pinning
+
+    def pinToggled(self, checked):
+            self.setWindowFlag(Qt.WindowStaysOnTopHint, checked)
+            self.show() 
+            self.saveLanguageSettings()
 
     def loadLanguageSettings(self):
         settings = QSettings("ITT", "ImageTranslationTool")
@@ -302,6 +317,7 @@ class MainWindow(QMainWindow):
         to_idx = self.menuToLang.findText(to_lang)
         if to_idx >= 0:
             self.menuToLang.setCurrentIndex(to_idx)
+        self.pinCheck.setChecked(settings.value("pin_window", False, type=bool))
 
     def saveLanguageSettings(self):
         settings = QSettings("ITT", "ImageTranslationTool")
@@ -309,6 +325,7 @@ class MainWindow(QMainWindow):
         settings.setValue("to_lang", self.menuToLang.currentText())
         settings.setValue("preload", self.preloadCheck.isChecked())
         settings.setValue("unload", self.unloadCheck.isChecked())
+        settings.setValue("pin_window", self.pinCheck.isChecked())
         settings.sync()
 
     def _updateLoadedTranslateSettings(self):
