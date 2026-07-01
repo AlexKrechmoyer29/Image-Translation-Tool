@@ -8,7 +8,7 @@ from PySide6.QtCore import Qt, QTimer, QSettings
 from app.overlay import SnipOverlay
 import app.translate
 
-def apply_dark_fusion_style(app: QApplication) -> None:
+def apply_style(app: QApplication) -> None:
     app.setStyle(QStyleFactory.create("Fusion"))
 
     # Font size 
