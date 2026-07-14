@@ -40,6 +40,28 @@ class TranslationWarmupWorker(QObject):
         else:
             self.finished.emit()
 
+
+class TranslationWorker(QObject):
+    finished = Signal(str)
+    failed = Signal(str)
+
+    def __init__(self, from_lang, to_lang, preload_model, unload_after_use):
+        super().__init__()
+        self.from_lang = from_lang
+        self.to_lang = to_lang
+        self.preload_model = preload_model
+        self.unload_after_use = unload_after_use
+
+    def run(self):
+        try:
+            translate = _translate_module(self.preload_model, self.unload_after_use)
+            translate.initTranslationPkg(self.from_lang, self.to_lang)
+            result = translate.translateText()
+        except Exception as exc:
+            self.failed.emit(str(exc))
+        else:
+            self.finished.emit(result)
+
 def apply_style(app: QApplication) -> None:
     app.setStyle(QStyleFactory.create("Fusion"))
 
@@ -143,6 +165,8 @@ class MainWindow(QMainWindow):
         super().__init__()
         self._warmup_thread = None
         self._warmup_worker = None
+        self._translation_thread = None
+        self._translation_worker = None
         
         # Top Bar
 
@@ -366,17 +390,41 @@ class MainWindow(QMainWindow):
         self._warmup_thread.start()
 
     def translateImage(self, fromLang, toLang):
-        translate = _translate_module(
+        self.show()
+        self.raise_()
+        self.activateWindow()
+
+        if self._translation_thread is not None:
+            return
+
+        self.outputDisplay.setPlainText("Processing screenshot...")
+
+        self._translation_thread = QThread(self)
+        self._translation_worker = TranslationWorker(
+            fromLang,
+            toLang,
             self.preloadCheck.isChecked(),
             self.unloadCheck.isChecked(),
         )
-        translate.initTranslationPkg(fromLang, toLang)
-        self.outputDisplay.setPlainText(translate.translateText())
-        self.show()
+        self._translation_worker.moveToThread(self._translation_thread)
+        self._translation_thread.started.connect(self._translation_worker.run)
+        self._translation_worker.finished.connect(self.outputDisplay.setPlainText)
+        self._translation_worker.finished.connect(self._translation_thread.quit)
+        self._translation_worker.failed.connect(
+            lambda message: self.outputDisplay.setPlainText(f"Translation failed:\n{message}")
+        )
+        self._translation_worker.failed.connect(self._translation_thread.quit)
+        self._translation_worker.finished.connect(self._translation_worker.deleteLater)
+        self._translation_worker.failed.connect(self._translation_worker.deleteLater)
+        self._translation_thread.finished.connect(self._translation_thread.deleteLater)
+        self._translation_thread.finished.connect(lambda: setattr(self, "_translation_thread", None))
+        self._translation_thread.finished.connect(lambda: setattr(self, "_translation_worker", None))
+        self._translation_thread.start()
 
     def showOverlay(self):
         self.hide()
         self.overlay = SnipOverlay()
+        self.overlay.destroyed.connect(self._restoreWindowAfterOverlay)
 
         fromLang = self.LANG_CODES[self.menuFromLang.currentText()]
         toLang = self.LANG_CODES[self.menuToLang.currentText()]
@@ -384,3 +432,9 @@ class MainWindow(QMainWindow):
         self.overlay.captureComplete.connect(lambda: self.translateImage(fromLang, toLang))
 
         self.overlay.showFullScreen()
+
+    def _restoreWindowAfterOverlay(self):
+        if self._translation_thread is None:
+            self.show()
+            self.raise_()
+            self.activateWindow()

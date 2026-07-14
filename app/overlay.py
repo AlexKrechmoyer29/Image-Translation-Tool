@@ -53,7 +53,6 @@ class SnipOverlay(QWidget):
             self.close()
 
     def closeEvent(self, event):
-        self.captureComplete.emit()
         event.accept()
 
     def captureSelection(self):
@@ -67,5 +66,7 @@ class SnipOverlay(QWidget):
         self.save_path = os.path.join("app\\Temp\\", "temp.png")
         success = pixmap.save(self.save_path)
         print(f"Saved successfully: {success} | Path: {self.save_path}")
+        if success:
+            self.captureComplete.emit()
         self.close()
         
