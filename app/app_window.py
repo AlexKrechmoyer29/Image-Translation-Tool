@@ -3,7 +3,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout, QVBoxLayout, QGridLayout, QSizePolicy, QPushButton, QApplication,
     QComboBox, QRadioButton, QButtonGroup, QGroupBox, QPlainTextEdit, QCheckBox
 )
-from PySide6.QtGui import QPalette, QColor
+from PySide6.QtGui import QPalette, QColor, QPixmap
 from PySide6.QtCore import Qt, QTimer, QSettings, QObject, Signal, QThread
 from app.overlay import SnipOverlay
 import sys
@@ -171,8 +171,11 @@ class MainWindow(QMainWindow):
         # Top Bar
 
         topBar = QFrame()
-        topLogo = QLabel("Logo")
-        title = QLabel("Title")
+        topLogo = QLabel()
+        topLogo.setPixmap(QPixmap("banner.png"))
+        topLogo.setScaledContents(True)
+        topLogo.setFixedWidth(400)
+        topLogo.setFixedHeight(100)
 
         menuBar = QFrame()
 
@@ -187,7 +190,7 @@ class MainWindow(QMainWindow):
         self.menuToLang.addItems(["English"])
 
 
-        # Handler for updating the "To" language options based on the selected "From" language, and vice versa.
+        # Handler for updating "To" language options based on selected "From" language and vice versa.
 
         def updateToLang(index):
             selected = self.menuFromLang.currentText()
@@ -273,8 +276,7 @@ class MainWindow(QMainWindow):
 
         # Top Bar Layout
 
-        topBarLayout.addWidget(topLogo, 1, Qt.AlignLeft)
-        topBarLayout.addWidget(title, 3, Qt.AlignCenter)
+        topBarLayout.addWidget(topLogo)
         topBar.setLayout(topBarLayout)
         topBar.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 

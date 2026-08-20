@@ -1,8 +1,8 @@
 import os.path
 import gc
 
-# Map from translation language codes (ISO 639-1) to PaddleOCR lexicon codes.
-# Languages not listed here default to "latin" (most European / Latin-script langs).
+# Map from translation language codes to PaddleOCR lexicon codes.
+# Languages not listed default to "latin" (most European / Latin-script langs).
 OCR_LANG_MAP = {
     "en": "en",
     "zh": "ch",                # Chinese simplified
@@ -55,7 +55,7 @@ def preloadTranslationPkg(fromLang, toLang):
     import argostranslate.translate as argostranslate_translate
 
     initTranslationPkg(fromLang, toLang)
-    # Trigger lazy model loading so the ctranslate2 model is in memory
+    # Trigger lazy model loading so the translate model is in memory
     argostranslate_translate.translate(" ", fromLang, toLang)
 
 def unloadTranslationPkg():
@@ -95,7 +95,7 @@ def translateText():
         f.write(translation + "\n")
         print(translation)
 
-    # Unload model from RAM if the setting is enabled
+    # Unload model from RAM if enabled
     if unload_after_use:
         unloadTranslationPkg()
 
